@@ -1,0 +1,27 @@
+
+def foo
+    x        =             5        
+    y = 3
+    def foo
+        x = 500
+    end foo
+    x = 10
+    foo()
+end foo
+
+def foo3
+    x = 11
+    y = 11
+end foo3
+
+def foo2
+    var x =  5        
+    var y =  5
+    foo3()        
+end foo2
+
+var x = 2                 
+var y = 4
+
+foo()
+foo2()
