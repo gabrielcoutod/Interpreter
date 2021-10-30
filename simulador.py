@@ -13,12 +13,31 @@ class Node:
         self.operator = operator
 
     def get_value(self):
+        # Arithmetic operators
         if self.operator == "-":
             return self.operands[0].get_value() - self.operands[1].get_value()
         elif self.operator == "*":
             return self.operands[0].get_value() * self.operands[1].get_value()
         elif self.operator == "+":
             return self.operands[0].get_value() + self.operands[1].get_value()
+        # Boolean operators
+        elif self.operator == "!":
+            return not self.operands[0].get_value()
+        elif self.operator == "&&":
+            return self.operands[0].get_value() and self.operands[1].get_value()
+        elif self.operator == "||":
+            return self.operands[0].get_value() or self.operands[1].get_value()
+        # Relational operators
+        elif self.operator == "==":
+            return self.operands[0].get_value() == self.operands[1].get_value()
+        elif self.operator == "<":
+            return self.operands[0].get_value() < self.operands[1].get_value()
+        elif self.operator == "<=":
+            return self.operands[0].get_value() <= self.operands[1].get_value()
+        elif self.operator == ">":
+            return self.operands[0].get_value() > self.operands[1].get_value()
+        elif self.operator == ">=":
+            return self.operands[0].get_value() >= self.operands[1].get_value()
 
 class Function:
     def __init__(self, name, beg_address, end_address, parent):
@@ -56,6 +75,22 @@ class Expression:
     Cria uma arvore para representar uma expressão matematica e avalia-la
     """
 
+    
+    OPERATOR_PRECEDENCE = {
+        "(":  0,
+        ")":  0,
+        "!":  1,
+        "*":  1,
+        "+":  2,
+        "-":  2,
+        "<":  3,
+        "<=": 3,
+        ">":  3,
+        ">=": 3,
+        "&&": 4,
+        "||": 4
+    }
+
     def __init__(self, string, parent, list_of_elements):
         # string da expressão
         string = string.strip()
@@ -84,9 +119,12 @@ class Expression:
         while rpn:
             value = rpn.pop()
             if Expression.is_operator(value):
-                operand_2 = stack.pop()
-                operand_1 = stack.pop()
-                operands = [operand_1, operand_2]
+                if value == "!":
+                    operands = [stack.pop()]
+                else:
+                    operand_2 = stack.pop()
+                    operand_1 = stack.pop()
+                    operands = [operand_1, operand_2]
                 value = Node(operands, value)
             stack.append(value)
         self.node = stack.pop()
@@ -97,7 +135,7 @@ class Expression:
         out_queue = []
         token = self.read_token()
         while token:
-            if token in "+-*":
+            if token in "+-*&&||!==<=<>=>":
                 while oper_stack and Expression.greater_op(oper_stack[-1], token) and oper_stack[-1] != "(":
                     out_queue.append(oper_stack.pop())
                 oper_stack.append(token)
@@ -139,20 +177,16 @@ class Expression:
 
     @staticmethod
     def is_operator_char(char):
-        return char in "-+*()"
+        return char in "-+*()!&|=<>"
 
     @staticmethod
     def is_operator(string):
-        return string in ["+", "-", "*", "(", ")"]
+        return string in ["+", "-", "*", "(", ")", "&&", "||", "!", "==", "<=", ">=", "<", ">"]
 
     @staticmethod
     def greater_op(operator_1, operator_2):
         """Retorna True se o operador 1 te precedencia maior que o operador 2"""
-        if operator_1 in "*" and operator_2 not in "*":
-            return True
-        else:
-            return False
-
+        return Expression.OPERATOR_PRECEDENCE[operator_1] < Expression.OPERATOR_PRECEDENCE[operator_2] 
 class ScopeMode(Enum):
     STATIC = 0
     DYNAMIC = 1
