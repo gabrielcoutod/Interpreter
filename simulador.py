@@ -270,17 +270,27 @@ def print_info(stack_functions, stack_vars, counter, function):
         terminal_len = term.height
         print(term.clear())
         with term.location(0, 0):
+            print(term.bold_red_on_bright_green(f'{counter + 1}: ') ,end='')
             stack = get_function_stack(stack_functions, function)
-            print(f'STACK: {counter + 1}: ' ,end='')
-            for foo in stack[::-1]:
+            foo = stack[-1]
+            vars_foo = get_function_vars(stack_vars, foo)
+            print(term.bold_red_on_bright_green(f"{foo.name} ("), end='')
+            len_vars_foo = len(vars_foo)
+            for var_index in range(len_vars_foo):
+                print(term.bold_red_on_bright_green(f"{vars_foo[var_index].name}={vars_foo[var_index].value}"), end='')
+                if var_index < len_vars_foo - 1:
+                    print(term.bold_red_on_bright_green(", "), end='')
+            print(term.bold_red_on_bright_green(f");"),end="")
+            print(term.bold_red_on_bright_green(f' STACK: ') ,end='')
+            for foo in stack[::-1][1:]:
                 vars_foo = get_function_vars(stack_vars, foo)
-                print(f"{foo.name} (", end='')
+                print(term.bold_red_on_bright_green(f"{foo.name} ("), end='')
                 len_vars_foo = len(vars_foo)
                 for var_index in range(len_vars_foo):
-                    print(f"{vars_foo[var_index].name}={vars_foo[var_index].value}", end='')
+                    print(term.bold_red_on_bright_green(f"{vars_foo[var_index].name}={vars_foo[var_index].value}"), end='')
                     if var_index < len_vars_foo - 1:
-                        print("", end=', ')
-                print(f")",end=";")
+                        print(term.bold_red_on_bright_green(", "), end='')
+                print(term.bold_red_on_bright_green(f");"),end="")
         temp_lines = [l.strip(' \n') for l in lines]
         j = 0
         for i in range(terminal_start, terminal_start + min(terminal_len - 1,len(lines))):
