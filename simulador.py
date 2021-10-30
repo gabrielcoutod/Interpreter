@@ -244,15 +244,16 @@ def interpret(function):
     false_ifs = 0
     
     for line in lines[function.beg_address + 1:function.end_address]:
-        function_counter, true_ifs, false_ifs = parseLine(line, function_counter, function, counter, true_ifs, false_ifs)
+        function_counter, true_ifs, false_ifs, exec_line = parseLine(line, function_counter, function, counter, true_ifs, false_ifs)
 
-        input(f"{counter}")
-        for stack_function in stack_functions:
-            print(stack_function, end=';')
-        print()
-        for stack_var in stack_vars:
-            print(stack_var, end=';')
-        print()
+        if exec_line:
+            input(f"{counter + 1}")
+            for stack_function in stack_functions:
+                print(stack_function, end=';')
+            print()
+            for stack_var in stack_vars:
+                print(stack_var, end=';')
+            print()
 
         counter += 1
         
@@ -267,23 +268,29 @@ def interpret(function):
 
 def parseLine(line, function_counter, parent_function, counter, true_ifs, false_ifs):
     line = line.strip()
+    exec_line = True
     # Caso em que uma função começa
     if line.startswith('def '):
         function_counter += 1
         if function_counter == 1:
             stack_functions.append(Function(line[line.find('def') + len('def '):], counter, -1, parent_function))
+        else:
+            exec_line = False
     
     # Caso que uma função termina
     elif line.startswith('end '):
         function_counter -= 1
         if function_counter == 0:
             stack_functions[-1].end_address = counter
+        else:
+            exec_line = False
 
     # Casos de operações na função atual        
     elif function_counter == 0:
         if line.startswith('if '):
             if false_ifs > 0:
                 false_ifs += 1
+                exec_line = False
             else:
                 cond = line[line.find('if') + len('if '):] # toda linha depois de if
                 if evaluate(cond, parent_function, stack_vars):
@@ -293,6 +300,7 @@ def parseLine(line, function_counter, parent_function, counter, true_ifs, false_
         elif line.startswith('endif'):
             if false_ifs > 0:
                 false_ifs -= 1
+                exec_line = False
             else:
                 true_ifs -= 1
         elif false_ifs == 0:
@@ -309,8 +317,11 @@ def parseLine(line, function_counter, parent_function, counter, true_ifs, false_
                 function_name = line[:line.find('(')].strip()
                 function_element = get_elem(function_name, stack_functions, parent_function)
                 interpret(function_element)
-
-    return function_counter, true_ifs, false_ifs
+            else:
+                exec_line = False
+    else:
+        exec_line = False
+    return function_counter, true_ifs, false_ifs, exec_line
 
 def evaluate(line, parent, list_of_elements):
     exp = Expression(line, parent, list_of_elements)
