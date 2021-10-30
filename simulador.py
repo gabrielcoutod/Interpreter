@@ -20,6 +20,10 @@ class Node:
             return self.operands[0].get_value() * self.operands[1].get_value()
         elif self.operator == "+":
             return self.operands[0].get_value() + self.operands[1].get_value()
+        if self.operator == "-u":
+            return -self.operands[0].get_value()
+        elif self.operator == "+u":
+            return self.operands[0].get_value()
         # Boolean operators
         elif self.operator == "!":
             return not self.operands[0].get_value()
@@ -80,15 +84,17 @@ class Expression:
         "(":  0,
         ")":  0,
         "!":  1,
-        "*":  1,
-        "+":  2,
-        "-":  2,
-        "<":  3,
-        "<=": 3,
-        ">":  3,
-        ">=": 3,
-        "&&": 4,
-        "||": 4
+        "-u": 1,
+        "+u": 1,
+        "*":  2,
+        "+":  3,
+        "-":  3,
+        "<":  4,
+        "<=": 4,
+        ">":  4,
+        ">=": 4,
+        "&&": 5,
+        "||": 5
     }
 
     def __init__(self, string, parent, list_of_elements):
@@ -119,7 +125,7 @@ class Expression:
         while rpn:
             value = rpn.pop()
             if Expression.is_operator(value):
-                if value == "!":
+                if Expression.is_unary_operator(value):
                     operands = [stack.pop()]
                 else:
                     operand_2 = stack.pop()
@@ -134,22 +140,31 @@ class Expression:
         oper_stack = []
         out_queue = []
         token = self.read_token()
+        last_token_was_operator = True
         while token:
             if token in "+-*&&||!==<=<>=>":
+                # unary + and -
+                if last_token_was_operator and token in '+-':
+                    token += 'u'
                 while oper_stack and Expression.greater_op(oper_stack[-1], token) and oper_stack[-1] != "(":
                     out_queue.append(oper_stack.pop())
                 oper_stack.append(token)
+                last_token_was_operator = True
             elif "(" == token:
                 oper_stack.append("(")
+                last_token_was_operator = True
             elif ")" == token:
                 while oper_stack and oper_stack[-1] != "(":
                     out_queue.append(oper_stack.pop())
                 if oper_stack[-1] == "(":
                     oper_stack.pop()
+                last_token_was_operator = False
             elif token.isalpha():
                 out_queue.append(get_elem(token, self.list_of_elements, self.parent))
+                last_token_was_operator = False
             elif token.isnumeric():
                 out_queue.append(Const(int(token)))
+                last_token_was_operator = False
             token = self.read_token()
         out_queue.extend(oper_stack[::-1])
         return out_queue
@@ -180,8 +195,12 @@ class Expression:
         return char in "-+*()!&|=<>"
 
     @staticmethod
+    def is_unary_operator(operator):
+        return operator in ["!", "+u", "-u"]
+
+    @staticmethod
     def is_operator(string):
-        return string in ["+", "-", "*", "(", ")", "&&", "||", "!", "==", "<=", ">=", "<", ">"]
+        return string in ["+", "-", "*", "(", ")", "&&", "||", "!", "==", "<=", ">=", "<", ">", "+u", "-u"]
 
     @staticmethod
     def greater_op(operator_1, operator_2):
