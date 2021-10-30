@@ -34,6 +34,8 @@ class Node:
         # Relational operators
         elif self.operator == "==":
             return self.operands[0].get_value() == self.operands[1].get_value()
+        elif self.operator == "~=":
+            return self.operands[0].get_value() != self.operands[1].get_value()
         elif self.operator == "<":
             return self.operands[0].get_value() < self.operands[1].get_value()
         elif self.operator == "<=":
@@ -93,8 +95,10 @@ class Expression:
         "<=": 4,
         ">":  4,
         ">=": 4,
-        "&&": 5,
-        "||": 5
+        "==": 5,
+        "~=": 5,
+        "&&": 6,
+        "||": 6
     }
 
     def __init__(self, string, parent, list_of_elements):
@@ -142,7 +146,7 @@ class Expression:
         token = self.read_token()
         last_token_was_operator = True
         while token:
-            if token in "+-*&&||!==<=<>=>":
+            if token in "+-*&&||!==~=<=<>=>":
                 # unary + and -
                 if last_token_was_operator and token in '+-':
                     token += 'u'
@@ -192,7 +196,7 @@ class Expression:
 
     @staticmethod
     def is_operator_char(char):
-        return char in "-+*()!&|=<>"
+        return char in "-+*()!&|=<>~"
 
     @staticmethod
     def is_unary_operator(operator):
@@ -200,7 +204,7 @@ class Expression:
 
     @staticmethod
     def is_operator(string):
-        return string in ["+", "-", "*", "(", ")", "&&", "||", "!", "==", "<=", ">=", "<", ">", "+u", "-u"]
+        return string in ["+", "-", "*", "(", ")", "&&", "||", "!", "==", "~=", "<=", ">=", "<", ">", "+u", "-u"]
 
     @staticmethod
     def greater_op(operator_1, operator_2):
@@ -236,9 +240,11 @@ def interpret(function):
     counter = function.beg_address + 1
     initial_len_stack_vars = len(stack_vars)
     initial_len_stack_functions = len(stack_functions)
+    true_ifs = 0
+    false_ifs = 0
     
     for line in lines[function.beg_address + 1:function.end_address]:
-        function_counter = parseLine(line, function_counter, function, counter)
+        function_counter, true_ifs, false_ifs = parseLine(line, function_counter, function, counter, true_ifs, false_ifs)
 
         input(f"{counter}")
         for stack_function in stack_functions:
@@ -259,7 +265,7 @@ def interpret(function):
     
 
 
-def parseLine(line, function_counter, parent_function, counter):
+def parseLine(line, function_counter, parent_function, counter, true_ifs, false_ifs):
     line = line.strip()
     # Caso em que uma função começa
     if line.startswith('def '):
@@ -275,21 +281,36 @@ def parseLine(line, function_counter, parent_function, counter):
 
     # Casos de operações na função atual        
     elif function_counter == 0:
-        if line.startswith('var '):
-            temp_line = line[line.find('var') + len('var '):] # toda linha depois de var
-            equal_index = temp_line.find('=')
-            stack_vars.append(Var( temp_line[: equal_index].strip(), evaluate(temp_line[equal_index + 1:], parent_function, stack_vars), parent_function))   
-        elif line.find('=') != -1: # casos de atribuição, ex x = 5, depende se é dinamico ou estatico
-            equal_index = line.find('=')
-            name = line[: equal_index].strip()
-            elem = get_elem(name, stack_vars, parent_function)
-            elem.value = evaluate(line[equal_index + 1:], parent_function, stack_vars)
-        elif line.endswith(')'): #quando for chamada de funcao foo()
-            function_name = line[:line.find('(')].strip()
-            function_element = get_elem(function_name, stack_functions, parent_function)
-            interpret(function_element)
+        if line.startswith('if '):
+            if false_ifs > 0:
+                false_ifs += 1
+            else:
+                cond = line[line.find('if') + len('if '):] # toda linha depois de if
+                if evaluate(cond, parent_function, stack_vars):
+                    true_ifs += 1
+                else:
+                    false_ifs += 1
+        elif line.startswith('endif'):
+            if false_ifs > 0:
+                false_ifs -= 1
+            else:
+                true_ifs -= 1
+        elif false_ifs == 0:
+            if line.startswith('var '):
+                temp_line = line[line.find('var') + len('var '):] # toda linha depois de var
+                equal_index = temp_line.find('=')
+                stack_vars.append(Var( temp_line[: equal_index].strip(), evaluate(temp_line[equal_index + 1:], parent_function, stack_vars), parent_function))   
+            elif line.find('=') != -1: # casos de atribuição, ex x = 5, depende se é dinamico ou estatico
+                equal_index = line.find('=')
+                name = line[: equal_index].strip()
+                elem = get_elem(name, stack_vars, parent_function)
+                elem.value = evaluate(line[equal_index + 1:], parent_function, stack_vars)
+            elif line.endswith(')'): #quando for chamada de funcao foo()
+                function_name = line[:line.find('(')].strip()
+                function_element = get_elem(function_name, stack_functions, parent_function)
+                interpret(function_element)
 
-    return function_counter
+    return function_counter, true_ifs, false_ifs
 
 def evaluate(line, parent, list_of_elements):
     exp = Expression(line, parent, list_of_elements)

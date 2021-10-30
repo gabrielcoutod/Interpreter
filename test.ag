@@ -26,6 +26,16 @@ y = 4 + 1
 var z = (5+4)*(x+y) + 3 + 5*(y+3)
 z = (15+2)*(x+y) + 7 + 5*(y+3)
 var t = -4 + 5*-1 + (-5) - (+7)
+if t ~= -21
+    if x > 0
+        foo()
+        foo2()
+    endif
+endif
 
-foo()
-foo2()
+if t == -21
+    if x > 0
+        foo()
+        foo2()
+    endif
+endif
