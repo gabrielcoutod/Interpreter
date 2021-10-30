@@ -1,5 +1,9 @@
 from enum import Enum
 import argparse
+from blessings import Terminal
+
+
+
 
 class Node:
     """ Nodo da arvore de uma expressao matematica. """
@@ -51,9 +55,10 @@ class Function:
         self.beg_address = beg_address # index of def ...
         self.end_address = end_address # index of end ...
         self.parent = parent # parent Function()
+        self.called = None
 
     def __str__(self):
-        return f"Foo: {self.name} {self.beg_address} {self.end_address} {self.parent.name if self.parent else None}"
+        return f"Foo: {self.name} {self.beg_address} {self.end_address} {self.parent.name if self.parent else None} {self.called.name if self.called else None}"
 
 class Var:
     def __init__(self, name, value, parent):
@@ -247,13 +252,7 @@ def interpret(function):
         function_counter, true_ifs, false_ifs, exec_line = parseLine(line, function_counter, function, counter, true_ifs, false_ifs)
 
         if exec_line:
-            input(f"{counter + 1}")
-            for stack_function in stack_functions:
-                print(stack_function, end=';')
-            print()
-            for stack_var in stack_vars:
-                print(stack_var, end=';')
-            print()
+            print_info(stack_functions, stack_vars, counter, function)
 
         counter += 1
         
@@ -264,6 +263,42 @@ def interpret(function):
     for i in range(len(stack_functions) - initial_len_stack_functions):
         stack_functions.pop()
     
+
+def print_info(stack_functions, stack_vars, counter, function):
+    global terminal_start
+    while (True):
+        terminal_len = term.height
+        print(term.clear())
+        with term.location(0, 0):
+            stack = get_function_stack(stack_functions, function)
+            for foo in stack[::-1]:
+                vars_foo = get_function_vars(stack_vars, foo)
+                print(f"STACK: {counter + 1}: {foo.name} (", end='')
+                len_vars_foo = len(vars_foo)
+                for var_index in range(len_vars_foo):
+                    print(f"{vars_foo[var_index].name}={vars_foo[var_index].value}", end='')
+                    if var_index < len_vars_foo - 1:
+                        print("", end=', ')
+                print(f")",end=";")
+        temp_lines = [l.strip(' \n') for l in lines]
+        j = 0
+        for i in range(terminal_start, terminal_start + min(terminal_len - 1,len(lines))):
+            with term.location(0, j + 1):
+                if i == counter:
+                    print(term.bold_red_on_bright_green(temp_lines[i]),end='')
+                else:
+                    print(temp_lines[i],end='')
+            j += 1
+        user_input = input()
+        if user_input == 'w':
+            terminal_start = 0 if terminal_start <= 1 else terminal_start - 1
+        if user_input == 's':
+            terminal_start =  terminal_start if terminal_start + terminal_len >= len(lines) else terminal_start + 1
+        if user_input == 'p':
+            break
+        if user_input == 'q':
+            exit()
+
 
 
 def parseLine(line, function_counter, parent_function, counter, true_ifs, false_ifs):
@@ -316,7 +351,9 @@ def parseLine(line, function_counter, parent_function, counter, true_ifs, false_
             elif line.endswith(')'): #quando for chamada de funcao foo()
                 function_name = line[:line.find('(')].strip()
                 function_element = get_elem(function_name, stack_functions, parent_function)
+                function_element.called = parent_function
                 interpret(function_element)
+                function_element.called = None
             else:
                 exec_line = False
     else:
@@ -349,6 +386,23 @@ def get_elem_static(name, list_of_elements, parent):
         parent = parent.parent
     return None
 
+def get_function_stack(list_of_elements, parent):
+    stack = []
+    while parent is not None:
+        for element in list_of_elements:
+            if element == parent:
+                stack.append(element)
+                parent = element.called
+                break
+    return stack
+
+def get_function_vars(stack_vars, foo):
+    vars = []
+    for var in stack_vars:
+        if var.parent == foo:
+            vars.append(var)
+    return vars
+
 
 args = parse_args()
 scope_mode = ScopeMode.DYNAMIC if args.dynamic else ScopeMode.STATIC
@@ -356,5 +410,9 @@ filename = args.file
 lines = read_lines(filename)
 global_function = Function('global',-1, len(lines), None)
 stack_functions.append(global_function)
-
-interpret(global_function)
+term = Terminal()
+terminal_start = 0
+terminal_len = term.height
+with term.fullscreen():
+    print_info(stack_functions, stack_vars, -1, global_function)
+    interpret(global_function)
