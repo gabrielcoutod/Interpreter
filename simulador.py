@@ -1,6 +1,6 @@
 from enum import Enum
 import argparse
-from blessings import Terminal
+from blessed import Terminal
 
 
 
@@ -271,9 +271,10 @@ def print_info(stack_functions, stack_vars, counter, function):
         print(term.clear())
         with term.location(0, 0):
             stack = get_function_stack(stack_functions, function)
+            print(f'STACK: {counter + 1}: ' ,end='')
             for foo in stack[::-1]:
                 vars_foo = get_function_vars(stack_vars, foo)
-                print(f"STACK: {counter + 1}: {foo.name} (", end='')
+                print(f"{foo.name} (", end='')
                 len_vars_foo = len(vars_foo)
                 for var_index in range(len_vars_foo):
                     print(f"{vars_foo[var_index].name}={vars_foo[var_index].value}", end='')
@@ -289,14 +290,14 @@ def print_info(stack_functions, stack_vars, counter, function):
                 else:
                     print(temp_lines[i],end='')
             j += 1
-        user_input = input()
-        if user_input == 'w':
+        user_input = term.inkey().code
+        if user_input == term.KEY_UP:
             terminal_start = 0 if terminal_start <= 1 else terminal_start - 1
-        if user_input == 's':
+        if user_input == term.KEY_DOWN:
             terminal_start =  terminal_start if terminal_start + terminal_len >= len(lines) else terminal_start + 1
-        if user_input == 'p':
+        if user_input == term.KEY_ENTER:
             break
-        if user_input == 'q':
+        if user_input == term.KEY_ESCAPE:
             exit()
 
 
@@ -414,5 +415,6 @@ term = Terminal()
 terminal_start = 0
 terminal_len = term.height
 with term.fullscreen():
-    print_info(stack_functions, stack_vars, -1, global_function)
-    interpret(global_function)
+    with term.cbreak(), term.hidden_cursor():
+        print_info(stack_functions, stack_vars, -1, global_function)
+        interpret(global_function)
