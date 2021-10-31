@@ -249,15 +249,13 @@ def interpret(function):
     initial_len_stack_functions = len(stack_functions)
     true_ifs = 0
     false_ifs = 0
-    
+
     for line in lines[function.beg_address + 1:function.end_address]:
-        function_counter, true_ifs, false_ifs, exec_line = parseLine(line, function_counter, function, counter, true_ifs, false_ifs)
-
-        if exec_line:
-            print_info(stack_functions, stack_vars, counter, function)
-
+        function_counter, true_ifs, false_ifs = parseLine(line, function_counter, function, counter, true_ifs, false_ifs)
         counter += 1
-        
+    
+    if function == global_function:
+        print_info(stack_functions, stack_vars, len(lines), global_function)
 
     # Remover valores das pilhas
     for i in range(len(stack_vars) - initial_len_stack_vars):
@@ -286,7 +284,7 @@ def print_info(stack_functions, stack_vars, counter, function):
             print(term.bold_red_on_bright_green(f' STACK: ') ,end='')
             for foo in stack[::-1][1:]:
                 vars_foo = get_function_vars(stack_vars, foo)
-                print(term.bold_red_on_bright_green(f"{foo.name} C:{foo.called_line}("), end='')
+                print(term.bold_red_on_bright_green(f"{foo.name} C:{foo.called_line} ("), end='')
                 len_vars_foo = len(vars_foo)
                 for var_index in range(len_vars_foo):
                     print(term.bold_red_on_bright_green(f"{vars_foo[var_index].name}={vars_foo[var_index].value}"), end='')
@@ -316,30 +314,27 @@ def print_info(stack_functions, stack_vars, counter, function):
 
 def parseLine(line, function_counter, parent_function, counter, true_ifs, false_ifs):
     line = line.strip()
-    exec_line = True
     # Caso em que uma função começa
     if line.startswith('def '):
         function_counter += 1
         if function_counter == 1:
+            print_info(stack_functions, stack_vars, counter, parent_function)
             stack_functions.append(Function(line[line.find('def') + len('def '):], counter, -1, parent_function))
-        else:
-            exec_line = False
-    
+
     # Caso que uma função termina
     elif line.startswith('end '):
         function_counter -= 1
         if function_counter == 0:
+            print_info(stack_functions, stack_vars, counter, parent_function)
             stack_functions[-1].end_address = counter
-        else:
-            exec_line = False
 
     # Casos de operações na função atual        
     elif function_counter == 0:
         if line.startswith('if '):
             if false_ifs > 0:
                 false_ifs += 1
-                exec_line = False
             else:
+                print_info(stack_functions, stack_vars, counter, parent_function)
                 cond = line[line.find('if') + len('if '):] # toda linha depois de if
                 if evaluate(cond, parent_function, stack_vars):
                     true_ifs += 1
@@ -347,23 +342,27 @@ def parseLine(line, function_counter, parent_function, counter, true_ifs, false_
                     false_ifs += 1
         elif line.startswith('endif'):
             if false_ifs == 1:
+                print_info(stack_functions, stack_vars, counter, parent_function)
                 false_ifs -= 1
-            if false_ifs > 1:
+            elif false_ifs > 1:
                 false_ifs -= 1
-                exec_line = False
             else:
+                print_info(stack_functions, stack_vars, counter, parent_function)
                 true_ifs -= 1
         elif false_ifs == 0:
             if line.startswith('var '):
+                print_info(stack_functions, stack_vars, counter, parent_function)
                 temp_line = line[line.find('var') + len('var '):] # toda linha depois de var
                 equal_index = temp_line.find('=')
                 stack_vars.append(Var( temp_line[: equal_index].strip(), evaluate(temp_line[equal_index + 1:], parent_function, stack_vars), parent_function))   
             elif line.find('=') != -1: # casos de atribuição, ex x = 5, depende se é dinamico ou estatico
+                print_info(stack_functions, stack_vars, counter, parent_function)
                 equal_index = line.find('=')
                 name = line[: equal_index].strip()
                 elem = get_elem(name, stack_vars, parent_function)
                 elem.value = evaluate(line[equal_index + 1:], parent_function, stack_vars)
             elif line.endswith(')'): #quando for chamada de funcao foo()
+                print_info(stack_functions, stack_vars, counter, parent_function)
                 function_name = line[:line.find('(')].strip()
                 function_element = get_elem(function_name, stack_functions, parent_function)
                 function_element.called = parent_function
@@ -371,13 +370,8 @@ def parseLine(line, function_counter, parent_function, counter, true_ifs, false_
                 interpret(function_element)
                 function_element.called = None
                 function_element.called_line = -1
-            else:
-                exec_line = False
-        else:
-            exec_line = False
-    else:
-        exec_line = False
-    return function_counter, true_ifs, false_ifs, exec_line
+                print_info(stack_functions, stack_vars, counter, parent_function)
+    return function_counter, true_ifs, false_ifs
 
 def evaluate(line, parent, list_of_elements):
     exp = Expression(line, parent, list_of_elements)
@@ -428,11 +422,11 @@ scope_mode = ScopeMode.DYNAMIC if args.dynamic else ScopeMode.STATIC
 filename = args.file
 lines = read_lines(filename)
 global_function = Function('global',-1, len(lines), None)
+global_function.called_line = 0
 stack_functions.append(global_function)
 term = Terminal()
 terminal_start = 0
 terminal_len = term.height
 with term.fullscreen():
     with term.cbreak(), term.hidden_cursor():
-        print_info(stack_functions, stack_vars, -1, global_function)
         interpret(global_function)
