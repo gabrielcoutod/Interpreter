@@ -306,7 +306,7 @@ def print_info(stack_functions, stack_vars, counter, function):
         if user_input == term.KEY_UP:
             terminal_start = 0 if terminal_start <= 1 else terminal_start - 1
         if user_input == term.KEY_DOWN:
-            terminal_start =  terminal_start if terminal_start + terminal_len >= len(lines) else terminal_start + 1
+            terminal_start =  terminal_start if terminal_start + terminal_len > len(lines) else terminal_start + 1
         if user_input == term.KEY_ENTER:
             break
         if user_input == term.KEY_ESCAPE:
