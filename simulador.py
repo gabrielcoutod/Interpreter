@@ -296,9 +296,9 @@ def print_info(stack_functions, stack_vars, counter, function):
         for i in range(terminal_start, terminal_start + min(terminal_len - 1,len(lines))):
             with term.location(0, j + 1):
                 if i == counter:
-                    print(term.bold_red_on_bright_green(temp_lines[i]),end='')
+                    print(f"{i + 1}- " + term.bold_red_on_bright_green(temp_lines[i]),end='')
                 else:
-                    print(temp_lines[i],end='')
+                    print(f"{i + 1}- " + temp_lines[i],end='')
             j += 1
         user_input = term.inkey().code
         if user_input == term.KEY_UP:
