@@ -57,9 +57,10 @@ class Function:
         self.end_address = end_address # index of end ...
         self.parent = parent # parent Function()
         self.called = None
+        self.called_line = -1
 
     def __str__(self):
-        return f"Foo: {self.name} {self.beg_address} {self.end_address} {self.parent.name if self.parent else None} {self.called.name if self.called else None}"
+        return f"Foo: {self.name} {self.beg_address} {self.end_address} {self.parent.name if self.parent else None} {self.called.name if self.called else None} {self.called_line}"
 
 class Var:
     def __init__(self, name, value, parent):
@@ -285,7 +286,7 @@ def print_info(stack_functions, stack_vars, counter, function):
             print(term.bold_red_on_bright_green(f' STACK: ') ,end='')
             for foo in stack[::-1][1:]:
                 vars_foo = get_function_vars(stack_vars, foo)
-                print(term.bold_red_on_bright_green(f"{foo.name} ("), end='')
+                print(term.bold_red_on_bright_green(f"{foo.name} C:{foo.called_line}("), end='')
                 len_vars_foo = len(vars_foo)
                 for var_index in range(len_vars_foo):
                     print(term.bold_red_on_bright_green(f"{vars_foo[var_index].name}={vars_foo[var_index].value}"), end='')
@@ -366,8 +367,10 @@ def parseLine(line, function_counter, parent_function, counter, true_ifs, false_
                 function_name = line[:line.find('(')].strip()
                 function_element = get_elem(function_name, stack_functions, parent_function)
                 function_element.called = parent_function
+                function_element.called_line = counter + 1
                 interpret(function_element)
                 function_element.called = None
+                function_element.called_line = -1
             else:
                 exec_line = False
         else:
