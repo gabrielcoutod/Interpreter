@@ -254,8 +254,7 @@ def interpret(function):
         function_counter, true_ifs, false_ifs = parseLine(line, function_counter, function, counter, true_ifs, false_ifs)
         counter += 1
     
-    if function == global_function:
-        print_info(stack_functions, stack_vars, len(lines), global_function)
+    print_info(stack_functions, stack_vars, function.end_address, function)
 
     # Remover valores das pilhas
     for i in range(len(stack_vars) - initial_len_stack_vars):
