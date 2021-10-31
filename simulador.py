@@ -1,5 +1,6 @@
 from enum import Enum
 import argparse
+import time
 from blessed import Terminal
 
 
@@ -344,7 +345,9 @@ def parseLine(line, function_counter, parent_function, counter, true_ifs, false_
                 else:
                     false_ifs += 1
         elif line.startswith('endif'):
-            if false_ifs > 0:
+            if false_ifs == 1:
+                false_ifs -= 1
+            if false_ifs > 1:
                 false_ifs -= 1
                 exec_line = False
             else:
@@ -367,6 +370,8 @@ def parseLine(line, function_counter, parent_function, counter, true_ifs, false_
                 function_element.called = None
             else:
                 exec_line = False
+        else:
+            exec_line = False
     else:
         exec_line = False
     return function_counter, true_ifs, false_ifs, exec_line
