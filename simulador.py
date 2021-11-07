@@ -290,7 +290,7 @@ def print_info(stack_functions, stack_vars, counter, function):
                     if var_index < len_vars_foo - 1:
                         print(term.bold_red_on_bright_green(", "), end='')
                 print(term.bold_red_on_bright_green(f");"),end="")
-        temp_lines = [l.strip(' \n') for l in lines]
+        temp_lines = [l.rstrip(' \n') for l in lines]
         j = 0
         for i in range(terminal_start, terminal_start + min(terminal_len - 1,len(lines))):
             with term.location(0, j + 1):
