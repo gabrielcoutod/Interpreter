@@ -394,7 +394,7 @@ def get_elem_static(name, list_of_elements, parent):
         for element in list_of_elements:
             if element.name == name and element.parent == parent:
                 return element
-        # atualizo parent_function
+        # atualiza parent_function
         parent = parent.parent
     return None
 

@@ -1,0 +1,16 @@
+var x = 3
+var y = 4
+
+def foo1
+	y = x
+	if x == 5
+		y = 10
+	endif 
+end foo1
+
+def foo2
+	var x = 5
+	foo1()
+end foo2
+
+foo2()
